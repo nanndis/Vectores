@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Coiny&family=Truculenta:opsz,wght@12..72,100..900&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>Calculadora de Vectores</title>
+  <style>
+    body {
+      font-family: "Truculenta", sans-serif;
+      font-style: normal;
+      background: #f4f4f4;
+      padding: 30px;
+      text-align: center;
+    }
+    h1 {
+      color: #333;
+      font-family: "Coiny", system-ui;
+      font-weight: 2000px;
+      font-style: normal;
+    }
+    form {
+      background:#85A7DE;
+      padding: 20px;
+      max-width: 500px;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input, select, button {
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+    input {
+      flex: 1;
+    }
+    select {
+      width: 90%;
+    }
+    button {
+      cursor: pointer;
+    }
+    button[type="button"] {
+      background: #85BDDE;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      transition: background 0.3s;
+    }
+    button[type="button"]:hover {
+      background: #BDB8F5;
+    }
+    #resultado {
+      margin-top: 20px;
+      padding: 15px;
+      background: #C5D6F0;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .vector-group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid #ddd;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      background: #fafafa;
+    }
+    .vector-group h3 {
+      margin: 0;
+      margin-right: 10px;
+      font-size: 16px;
+      color: #333;
+    }
+    .vector-inputs {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      gap: 8px;
+    }
+    /* Ocultar gráficas al inicio */
+    #canvas, #contenedor3D {
+      display: none;
+    }
+  </style>
+</head>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Calculadora de Vectores con Ejes</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .vector-group { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 5px; }
+        .vector-inputs { display: flex; align-items: center; }
+        .vectorInput { flex-grow: 1; padding: 5px; margin-right: 10px; }
+        .remove-btn { background-color: #e74c3c; color: white; border: none; cursor: pointer; padding: 5px 10px; }
+        button { padding: 8px 12px; margin: 5px 0; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<h1>Calculadora de Vectores</h1>
+<form id="vectorForm">
+    <div id="vectorContainer"></div>
+    <button type="button" id="btnAgregar" onclick="agregarVector()">+ Agregar Vector</button><br><br>
+    <label>Operación:</label><br>
+    <select id="operacion">
+        <option value="suma">Suma de Vectores (todos)</option>
+        <option value="angulo">Ángulo entre Vectores (solo primeros 2)</option>
+        <option value="punto">Producto Punto (solo primeros 2)</option>
+        <option value="cruz">Producto Cruz (solo primeros 2)</option>
+        <option value="triple">Producto Triple Escalar (exactamente 3)</option>
+    </select><br><br>
+    <button type="button" onclick="calcular()">Calcular</button>
+    <button type="button" onclick="mostrarGrafica('2D')">Graficar Vectores</button>
+    <button type="button" onclick="mostrarGrafica('3D')">Graficar en 3D</button>
+    <button type="button" onclick="ocultarGraficas()">Ocultar Gráficas</button>
+</form>
+
+<div id="resultado"></div>
+<canvas id="canvas" width="500" height="500" style="background:#fff; border:1px solid #ccc; margin-top:20px; display:none;"></canvas>
+<div id="contenedor3D" style="margin-top:20px; display:none;"></div>
+
+<script>
+    let contadorVectores = 0;
+    const maxVectores = 3;
+
+    function agregarVector() {
+        if (contadorVectores >= maxVectores) return;
+        contadorVectores++;
+        const container = document.getElementById("vectorContainer");
+        const vectorGroup = document.createElement("div");
+        vectorGroup.classList.add("vector-group");
+        vectorGroup.setAttribute("id", `vector-${contadorVectores}`);
+        vectorGroup.innerHTML = `
+        <h3>Vector ${contadorVectores}</h3>
+        <div class="vector-inputs">
+            <input type="text" placeholder="Ejemplo: 1 2 3" class="vectorInput" required>
+            <button type="button" class="remove-btn" onclick="eliminarVector(${contadorVectores})">X</button>
+        </div>
+        `;
+        container.appendChild(vectorGroup);
+        verificarBotonAgregar();
+    }
+
+    function eliminarVector(id) {
+        const vector = document.getElementById(`vector-${id}`);
+        if (vector) {
+            vector.remove();
+            contadorVectores--;
+            verificarBotonAgregar();
+        }
+    }
+
+    function verificarBotonAgregar() {
+        const boton = document.getElementById("btnAgregar");
+        boton.disabled = contadorVectores >= maxVectores;
+    }
+
+    function parseVector(input) {
+        const valores = input.trim().split(" ").map(Number);
+        if (valores.length !== 3 || valores.some(isNaN)) {
+            alert("Ingresa tres valores separados por espacio (ejemplo: 1 2 3)");
+            return null;
+        }
+        return valores;
+    }
+
+    function calcular() {
+        const inputs = document.querySelectorAll(".vectorInput");
+        const operacion = document.getElementById("operacion").value;
+        const resultadoDiv = document.getElementById("resultado");
+        const vectores = [];
+        let resultado = "";
+
+        for (let input of inputs) {
+            const vector = parseVector(input.value);
+            if (!vector) return;
+            vectores.push(vector);
+        }
+
+        if (operacion !== "suma" && vectores.length < 2) {
+            alert("Se necesitan al menos 2 vectores para esta operación.");
+            return;
+        }
+        if (operacion === "triple" && vectores.length !== 3) {
+            alert("El producto triple escalar requiere exactamente 3 vectores.");
+            return;
+        }
+
+        if (operacion === "suma") {
+            let suma = [0, 0, 0];
+            vectores.forEach(v => {
+                suma[0] += v[0];
+                suma[1] += v[1];
+                suma[2] += v[2];
+            });
+            resultado = `Suma Total: (${suma[0]}i, ${suma[1]}j, ${suma[2]}k)`;
+        } else if (operacion === "angulo") {
+            const a = vectores[0];
+            const b = vectores[1];
+            const punto = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+            const magA = Math.sqrt(a[0] ** 2 + a[1] ** 2 + a[2] ** 2);
+            const magB = Math.sqrt(b[0] ** 2 + b[1] ** 2 + b[2] ** 2);
+            const angulo = Math.acos(punto / (magA * magB)) * (180 / Math.PI);
+            resultado = `Ángulo entre los vectores: ${angulo.toFixed(2)}°`;
+        } else if (operacion === "punto") {
+            const a = vectores[0];
+            const b = vectores[1];
+            const punto = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+            resultado = `Producto Punto: ${punto}`;
+        } else if (operacion === "cruz") {
+            const a = vectores[0];
+            const b = vectores[1];
+            const cruz = [
+                a[1] * b[2] - a[2] * b[1],
+                a[2] * b[0] - a[0] * b[2],
+                a[0] * b[1] - a[1] * b[0]
+            ];
+            resultado = `Producto Cruz: (${cruz[0]}i, ${cruz[1]}j, ${cruz[2]}k)`;
+        } else if (operacion === "triple") {
+            const a = vectores[0];
+            const b = vectores[1];
+            const c = vectores[2];
+            const cruz = [
+                b[1] * c[2] - b[2] * c[1],
+                b[2] * c[0] - b[0] * c[2],
+                b[0] * c[1] - b[1] * c[0]
+            ];
+            const triple = a[0] * cruz[0] + a[1] * cruz[1] + a[2] * cruz[2];
+            resultado = `Producto Triple Escalar: ${triple}`;
+        }
+        resultadoDiv.innerHTML = `<h3>${resultado}</h3>`;
+    }
+
+    agregarVector();
+    agregarVector();
+
+    function mostrarGrafica(tipo) {
+        const canvas = document.getElementById("canvas");
+        const contenedor3D = document.getElementById("contenedor3D");
+        canvas.style.display = "none";
+        contenedor3D.style.display = "none";
+
+        if (tipo === "2D") {
+            canvas.style.display = "block";
+            graficar();
+        } else if (tipo === "3D") {
+            contenedor3D.style.display = "block";
+            graficar3D();
+        }
+    }
+
+    function ocultarGraficas() {
+        document.getElementById("canvas").style.display = "none";
+        document.getElementById("contenedor3D").style.display = "none";
+    }
+
+    function graficar() {
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const origenX = canvas.width / 2;
+        const origenY = canvas.height / 2;
+        const escala = 20;
+
+        ctx.strokeStyle = "#aaa";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, origenY);
+        ctx.lineTo(canvas.width, origenY);
+        ctx.moveTo(origenX, 0);
+        ctx.lineTo(origenX, canvas.height);
+        ctx.stroke();
+
+        // --- INICIO DE MODIFICACIÓN: ETIQUETAS DE EJES 2D ---
+        ctx.fillStyle = "#000";
+        ctx.font = "bold 16px sans-serif";
+        ctx.fillText("X", canvas.width - 20, origenY - 10);
+        ctx.fillText("Y", origenX + 10, 20);
+        // --- FIN DE MODIFICACIÓN ---
+
+        ctx.fillStyle = "#666";
+        ctx.font = "10px Truculenta";
+        for (let i = -10; i <= 10; i++) {
+            if (i !== 0) {
+                ctx.fillText(i, origenX + i * escala - 5, origenY + 12);
+                ctx.fillText(i, origenX + 5, origenY - i * escala + 3);
+            }
+        }
+
+        const inputs = document.querySelectorAll(".vectorInput");
+        const vectores = [];
+        for (let input of inputs) {
+            const vector = parseVector(input.value);
+            if (!vector) return;
+            vectores.push(vector);
+        }
+
+        vectores.forEach((v, i) => {
+            const [x, y] = v;
+            const endX = origenX + x * escala;
+            const endY = origenY - y * escala;
+
+            ctx.beginPath();
+            ctx.moveTo(origenX, origenY);
+            ctx.lineTo(endX, endY);
+            ctx.strokeStyle = ["#e74c3c", "#3498db", "#2ecc71"][i % 3];
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            const dx = endX - origenX;
+            const dy = endY - origenY;
+            const angulo = Math.atan2(dy, dx);
+            const flechaLargo = 10;
+            ctx.beginPath();
+            ctx.moveTo(endX, endY);
+            ctx.lineTo(endX - flechaLargo * Math.cos(angulo - Math.PI / 6), endY - flechaLargo * Math.sin(angulo - Math.PI / 6));
+            ctx.lineTo(endX - flechaLargo * Math.cos(angulo + Math.PI / 6), endY - flechaLargo * Math.sin(angulo + Math.PI / 6));
+            ctx.lineTo(endX, endY);
+            ctx.fillStyle = ctx.strokeStyle;
+            ctx.fill();
+
+            ctx.fillStyle = "#000";
+            ctx.font = "12px Truculenta";
+            ctx.fillText(`V${i + 1}`, endX + 5, endY - 5);
+        });
+    }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<script>
+    function graficar3D() {
+        document.getElementById("contenedor3D").innerHTML = "";
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xffffff); // Fondo blanco
+        const camera = new THREE.PerspectiveCamera(75, 500 / 400, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(500, 400);
+        document.getElementById("contenedor3D").appendChild(renderer.domElement);
+
+        const axesHelper = new THREE.AxesHelper(5);
+        scene.add(axesHelper);
+
+        // --- INICIO DE MODIFICACIÓN: ETIQUETAS DE EJES 3D ---
+        function crearEtiqueta(texto, posicion) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            const size = 64;
+            canvas.width = size;
+            canvas.height = size;
+
+            context.font = `Bold ${size/2}px sans-serif`;
+            context.fillStyle = "black";
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText(texto, size / 2, size / 2);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            
+            sprite.position.copy(posicion);
+            sprite.scale.set(1.5, 1.5, 1.5);
+            return sprite;
+        }
+
+        const tamanoEje = 5;
+        scene.add(crearEtiqueta('X', new THREE.Vector3(tamanoEje + 0.5, 0, 0)));
+        scene.add(crearEtiqueta('Y', new THREE.Vector3(0, tamanoEje + 0.5, 0)));
+        scene.add(crearEtiqueta('Z', new THREE.Vector3(0, 0, tamanoEje + 0.5)));
+        // --- FIN DE MODIFICACIÓN ---
+
+        const inputs = document.querySelectorAll(".vectorInput");
+        const vectores = [];
+        for (let input of inputs) {
+            const vector = parseVector(input.value);
+            if (!vector) return;
+            vectores.push(vector);
+        }
+
+        vectores.forEach((v, i) => {
+            const dir = new THREE.Vector3(...v).normalize();
+            const origin = new THREE.Vector3(0, 0, 0);
+            const length = Math.sqrt(v[0]**2 + v[1]**2 + v[2]**2);
+            const color = [0xff0000, 0x00ff00, 0x0000ff][i % 3]; // Mismos colores que en 2D
+            const arrowHelper = new THREE.ArrowHelper(dir, origin, length, color, 0.4, 0.2);
+            scene.add(arrowHelper);
+        });
+
+        camera.position.set(5, 5, 5);
+        camera.lookAt(0, 0, 0);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
+    }
+</script>
+
+</body>
+</html>
